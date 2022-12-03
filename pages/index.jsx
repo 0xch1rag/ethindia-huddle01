@@ -1,24 +1,63 @@
 import React, { useState } from "react";
-import { useAccount, useConnect, useDisconnect, useEnsName } from "wagmi";
+
+import {
+  useAccount,
+  useConnect,
+  useDisconnect,
+  useEnsName,
+  useProvider,
+  useSigner,
+} from "wagmi";
+import { InjectedConnector } from "wagmi/connectors/injected";
+
 import { useRouter } from "next/router";
+import { Framework } from "@superfluid-finance/sdk-core";
+import { ethers } from "ethers";
+
+// import { supabase } from "../utils/supabse";
 
 function Index() {
   const { address, isConnected } = useAccount();
-  const [link, setLink] = useState("");
-
+  const { data: signer } = useSigner();
+  const provider = useProvider({ chainId: 137 });
   const router = useRouter();
 
-  const handlechange = (e) => {
-    console.log(e.target.value);
-  };
-  
-
-
-
-  const generateLink = () => {
-    const generateId = address.slice(-10);
+  const generateLink = async () => {
+    console.log({ InjectedConnector });
     console.log("Generating Huddle01 Link ....");
-    router.push(`/room/${generateId}`)
+    console.log({ provider });
+    // const web3Provider = new ethers.providers.Web3Provider(provider);
+    // console.log({ web3Provider });
+    const sf = await Framework.create({
+      chainId: 5, //your chainId here
+      provider: provider,
+    });
+
+    const web3ModalSigner = sf.createSigner({
+      provider,
+      signer,
+    });
+
+    // // Read example
+    // const flowInfo = await sf.cfaV1.getFlow({
+    //   superToken: "0x88271d333C72e51516B67f5567c728E702b3eeE8",
+    //   sender: "0x825720bDA62C450e2989418B19e68e218A800e11",
+    //   receiver: "0x825720bDA62C450e2989418B19e68e218A800e11",
+    //   providerOrSigner: web3ModalSigner,
+    // });
+    // console.log("flowInfo", flowInfo);
+
+    // const createFlowOperation = sf.cfaV1.createFlow({
+    //   sender: "0x825720bDA62C450e2989418B19e68e218A800e11",
+    //   receiver: "0x410C8213e82393C08cee3c3DF1C9231244d32898",
+    //   superToken: "0x88271d333C72e51516B67f5567c728E702b3eeE8",
+    //   flowRate: "0",
+    // });
+
+    // await createFlowOperation.exec(signer);
+
+    // console.log({ web3ModalSigner });
+    router.push(`/room/${address}`);
   };
 
   return (
@@ -48,7 +87,7 @@ function Index() {
                     id="token"
                     className="w-full px-[10px] py-[7px] border"
                   >
-                    <option value="dat">Dai</option>
+                    <option value="daix">Daix</option>
                   </select>
                 </div>
               </div>
@@ -65,11 +104,6 @@ function Index() {
                 >
                   Start Instant Consultation
                 </button>
-              </div>
-
-              <div className="flex flex-col mt-[30px]">
-                <p className="font-bold text-[20px]">Generated Link</p>
-                {link}
               </div>
             </div>
           </div>

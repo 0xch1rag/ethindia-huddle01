@@ -11,19 +11,18 @@ const MeVideoElem = () => {
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
     }
-    console.log({ stream });
+    // console.log({ stream });
   }, [stream]);
   return (
-    <div className="items-center flex justify-center">
+    <>
       <video
-        style={{ width: "70%" }}
-        className="rounded-2xl"
+        className="rounded-2xl border-2 p-[5px] w-full"
         ref={videoRef}
         autoPlay
         muted
         playsInline
       ></video>
-    </div>
+    </>
   );
 };
 

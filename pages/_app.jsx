@@ -5,50 +5,39 @@ import {
   HuddleClientProvider,
 } from "@huddle01/huddle01-client";
 
-import "@rainbow-me/rainbowkit/styles.css";
-import {
-  getDefaultWallets,
-  RainbowKitProvider,
-  darkTheme,
-} from "@rainbow-me/rainbowkit";
-import { chain, configureChains, createClient, WagmiConfig } from "wagmi";
-import { alchemyProvider } from "wagmi/providers/alchemy";
-import { publicProvider } from "wagmi/providers/public";
+import { WagmiConfig, createClient, chain } from "wagmi";
+import { ConnectKitProvider, getDefaultClient } from "connectkit";
+
+const alchemyId = process.env.ALCHEMY_ID;
+
+const chains = [chain.goerli];
+
+const client = createClient(
+  getDefaultClient({
+    appName: "Your App Name",
+    alchemyId,
+    chains,
+  })
+);
 
 export default function App({ Component, pageProps }) {
-  const { chains, provider } = configureChains(
-    [chain.polygonMumbai],
-    [alchemyProvider({ alchemyId: process.env.ALCHEMY_ID }), publicProvider()]
-  );
-
-  const { connectors } = getDefaultWallets({
-    appName: "My RainbowKit App",
-    chains,
-  });
-
-  const wagmiClient = createClient({
-    autoConnect: true,
-    connectors,
-    provider,
-  });
-
   const huddleClient = getHuddleClient(
     "052d7c4930885c3e9d837eb1e1eeab370465806b3315e96dc6afd9a734bc9068"
   );
 
   return (
     <>
-      <div className="bg-gray-100">
-        <WagmiConfig client={wagmiClient}>
-          <RainbowKitProvider theme={darkTheme()} chains={chains}>
+      <div className="">
+        <WagmiConfig client={client}>
+          <ConnectKitProvider theme="soft">
             <HuddleClientProvider value={huddleClient}>
               <Header />
 
-              <main className="bg-gray-100 h-screen container">
+              <main className=" h-screen container">
                 <Component {...pageProps} />
               </main>
-            </HuddleClientProvider>{" "}
-          </RainbowKitProvider>
+            </HuddleClientProvider>
+          </ConnectKitProvider>
         </WagmiConfig>
       </div>
     </>

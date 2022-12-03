@@ -4,33 +4,111 @@ import MeVideoElem from "../../components/MeVideoElem";
 import PeerVideoAudioElem from "../../components/PeerVideoAudioElem";
 import { getHuddleClient } from "@huddle01/huddle01-client";
 
+import { useState } from "react";
+
+import {
+  useAccount,
+  useConnect,
+  useDisconnect,
+  useEnsName,
+  useProvider,
+  useSigner,
+} from "wagmi";
+
 import { useHuddleStore } from "@huddle01/huddle01-client/store";
 // import { useHuddleStore } from "huddle01-client/hooks";
 
 import { useEffect } from "react";
 
+import { useRouter } from "next/router";
+
+import { InjectedConnector } from "wagmi/connectors/injected";
+import { Framework } from "@superfluid-finance/sdk-core";
+
 export default function Room() {
+  const [startTime, setStartTime] = useState("");
   const huddleClient = getHuddleClient(
     "052d7c4930885c3e9d837eb1e1eeab370465806b3315e96dc6afd9a734bc9068"
   );
   const peersKeys = useHuddleStore((state) => Object.keys(state.peers));
   const lobbyPeers = useHuddleStore((state) => state.lobbyPeers);
   const roomState = useHuddleStore((state) => state.roomState);
-  const recordingState = useHuddleStore((state) => state.recordingState);
-  const recordings = useHuddleStore((state) => state.recordings);
-  const roomId = useHuddleStore((state) => state.roomState.roomId);
 
-  console.log(roomId);
+  const roomId = useHuddleStore((state) => state.roomState.roomId);
+  const stateRoom = useHuddleStore((state) => state.roomState);
+
+  // console.log(stateRoom);
+  const { data: signer } = useSigner();
+
+  const router = useRouter();
+
+  const finalRoomId = router.query.id;
+
+  const { address, isConnected } = useAccount();
+
+  const hostId = useHuddleStore((state) => state.hostId);
+
+  useEffect(() => {
+    huddleClient.enableWebcam();
+  }, [huddleClient]);
+
+  const provider = useProvider({ chainId: 137 });
+
+  const handleJoinConsultant = async () => {
+    await huddleClient.join(finalRoomId, {
+      address: address,
+    });
+  };
 
   const handleJoin = async () => {
     try {
-      await huddleClient.join("dev", {
-        address: "0x825720bDA62C450e2989418B19e68e218A800e11",
-        wallet: "",
-        ens: "ch1rag.eth",
+      console.log("joined", finalRoomId);
+
+      const sf = await Framework.create({
+        chainId: 5, //your chainId here
+        provider: provider,
       });
 
-      console.log("joined");
+      const createFlowOperation = sf.cfaV1.createFlow({
+        sender: address,
+        receiver: finalRoomId,
+        superToken: "0xf2d68898557ccb2cf4c10c3ef2b034b2a69dad00",
+        flowRate: "1000000000000000",
+      });
+
+      await createFlowOperation.exec(signer, 10);
+
+      await huddleClient.join(finalRoomId, {
+        address: finalRoomId,
+        // wallet: address,
+      });
+    } catch (error) {
+      console.log({ error });
+    }
+  };
+
+  const handleDrop = async () => {
+    try {
+      const sf = await Framework.create({
+        chainId: 5, //your chainId here
+        provider: provider,
+      });
+
+      const createFlowOperation = sf.cfaV1.deleteFlow({
+        sender: address,
+        receiver: finalRoomId,
+        superToken: "0xf2d68898557ccb2cf4c10c3ef2b034b2a69dad00",
+        flowRate: "1000000000000000",
+      });
+
+      await createFlowOperation.exec(signer, 10);
+
+      await huddleClient.closeRoomForEverybody(finalRoomId, {
+        address: address,
+        wallet: address,
+      });
+
+      console.log("dropped");
     } catch (error) {
       console.log({ error });
     }
@@ -45,45 +123,98 @@ export default function Room() {
       </Head>
 
       <main className="w-screen ">
-        <div className=" border-b container mx-auto ">
+        <div className="container mx-auto ">
+          <p className="text-[20px] mt-[20px]">
+            {stateRoom.joined ? "You are in the room" : "You out of the room"}
+          </p>
+
           <div className="container mx-auto">
             <div className="max-w-screen  justify-between">
-              <div>
-                <div className="mt-[50px]">
-                  <MeVideoElem />
+              <div className="mt-[20px]">
+                <div className="w-full flex">
+                  <div className="w-1/2">
+                    <MeVideoElem />
+                  </div>
+                  <div className="w-1/2">
+                    <div>
+                      {peersKeys.map((key) => (
+                        <>
+                          <PeerVideoAudioElem
+                            key={`peerId-${key}`}
+                            peerIdAtIndex={key}
+                          />
+                          <p className="">Consultant (host) {hostId}</p>
+                        </>
+                      ))}
+                    </div>
 
-                  {lobbyPeers[0] && <h2>Lobby Peers</h2>}
+                    {/* {lobbyPeers[0] && <h2>Lobby Peers</h2>} */}
+                    {/* <div className="w-full flex items-center">
+                      <div className="w-1/2">
+                        <p className="py-[10px]">Consultant</p>
+                        {lobbyPeers.map((peer) => (
+                          <div className="" key={peer.peerId}>
+                            {peer.peerId}
+                          </div>
+                        ))}
 
-                  <div className="bg-red-100 border">
-                    {lobbyPeers.map((peer) => (
-                      <div className="" key={peer.peerId}>
-                        {peer.peerId}
+                        <p className="-mt-[80px] text-yellow-500 ml-[20px] font-bold">
+                          Host Id : {hostId}
+                        </p>
                       </div>
-                    ))}
+
+                      {peersKeys[0] && <h2>Peers</h2>}
+                    </div> */}
                   </div>
+                </div>
 
-                  {peersKeys[0] && <h2>Peers</h2>}
+                <div className="flex items-center justify-center mt-[70px]">
+                  <div className="card flex space-x-[10px]">
+                    <button
+                      className="border px-[10px] py-[5px] rounded-lg hover:bg-gray-200 duration-300 transition"
+                      onClick={handleJoinConsultant}
+                    >
+                      Join As Consultant
+                    </button>
 
-                  <div className="peer-grid">
-                    {peersKeys.map((key) => (
-                      <>
-                        <PeerVideoAudioElem
-                          key={`peerId-${key}`}
-                          peerIdAtIndex={key}
-                        />
-                        <p>{key}</p>
-                      </>
-                    ))}
-                  </div>
+                    <button
+                      className="border px-[10px] py-[5px] rounded-lg hover:bg-gray-200 duration-300 transition"
+                      onClick={handleJoin}
+                    >
+                      Join As User
+                    </button>
 
-                  <div className="card flex">
-                    <button onClick={handleJoin}>Join Room</button>
+                    <button
+                      className="border px-[10px] py-[5px] rounded-lg hover:bg-gray-200 duration-300 transition"
+                      onClick={handleDrop}
+                    >
+                      Drop Room
+                    </button>
 
-                    <button onClick={() => huddleClient.enableWebcam()}>
+                    <button
+                      className="border px-[10px] py-[5px] rounded-lg hover:bg-gray-200 duration-300 transition"
+                      onClick={() => huddleClient.enableWebcam()}
+                    >
                       Enable Webcam
                     </button>
-                    <button onClick={() => huddleClient.disableWebcam()}>
+                    <button
+                      className="border px-[10px] py-[5px] rounded-lg hover:bg-gray-200 duration-300 transition"
+                      onClick={() => huddleClient.disableWebcam()}
+                    >
                       Disable Webcam
+                    </button>
+
+                    <button
+                      className="border px-[10px] py-[5px] rounded-lg hover:bg-gray-200 duration-300 transition"
+                      onClick={() => huddleClient.enableMic()}
+                    >
+                      Enable Mic
+                    </button>
+                    <button
+                      className="border px-[10px] py-[5px] rounded-lg hover:bg-gray-200 duration-300 transition"
+                      onClick={() => huddleClient.muteMic()}
+                    >
+                      Disable mic
                     </button>
                   </div>
                 </div>
@@ -95,4 +226,3 @@ export default function Room() {
     </div>
   );
 }
-
