@@ -25,7 +25,7 @@ export default function Home() {
 
     try {
       await huddleClient.join("dev", {
-        address: "csd",
+        address: "0x825720bDA62C450e2989418B19e68e218A800e11",
         wallet: "",
         ens: "ch1rag.eth",
       });
