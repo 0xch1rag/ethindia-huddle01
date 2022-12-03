@@ -14,13 +14,16 @@ const MeVideoElem = () => {
     console.log({ stream });
   }, [stream]);
   return (
-    <video
-      style={{ width: "100%" }}
-      ref={videoRef}
-      autoPlay
-      muted
-      playsInline
-    ></video>
+    <div className="items-center flex justify-center">
+      <video
+        style={{ width: "70%" }}
+        className="rounded-2xl"
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+      ></video>
+    </div>
   );
 };
 
